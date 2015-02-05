@@ -25,54 +25,73 @@ import javax.swing.Timer;
  * @author Hazem
  */
 public class InteractionIcarPointage implements IvyMessageListener {
-  int posx=0;
+   int busGetPointClick;
+    int posx=0;
   int posy=0;
     String form="";
   private Ivy bus;
   String x;
   String y;
+  //savoir si l'utilisateur a cliquer ou pointer sur la palette
   Boolean isClicked=false;
+  //savoir si la forme est detecter
+  //pour savoir si l'emplacement de la création est detecter par pointage(voix) ou par click 
+  boolean iGetVoiceIci=false;
     @Override
     public void receive(IvyClient ic, String[] strings) {
     }
+
+    
   enum State 
   {
-     INIT,FICAR,SPOIN,CREE
+    //etat initiale
+      INIT,
+     //etat forme connue
+      FICAR,
+      //etat click detecter
+     SCLICK,
+     //etat pointage detecter
+     POINT,
+     //etat forme cree sur la palette
+     CREE
+    
   }
     State sb;
+    //delay pour timer
     int delay = 4000; //milliseconds
+    //action du timer 
+    //le timer est appelé aprés avoir detecter la forme il est lancé pour attenre un click ou un pointage
+    //de l'utilisateur sinon il s"excute est crée la forme sur la palette tous seul, si l'utilisateur a clické 
+    //ou pointer alr le timer va etre arreter.
+    
     ActionListener task = new ActionListener() {
-
       @Override
       public void actionPerformed(ActionEvent e) {
-          try {
-              getPalettePoint();
-          } catch (IvyException ex) {
-              Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
-          }
           System.out.println("timer");
-if (isClicked)
-{
-          try {
-              getPalettePoint();
-              isClicked=false;
-          } catch (IvyException ex) {
-              Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
-          }
-}
-else {System.out.println("3afatlo"+form);
-              try {
-                  bus.sendMsg(form+" x="+posx+" y="+posy);
-                  posx+=50;
-                  posy+=50;
-              } catch (IvyException ex) {
-                  Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
-              }
-        t.stop();
-     }
+                //si l'utilisateur a clicker ou pointer il va choisir à quelle endroit la forme sera créer
+                if (isClicked)
+                        {
+                                    isClicked=false;
+                               
+                        }
+                //sinon la forme va etre cree à un emplacement décaller 50 px a la derniere forme creer par le timer
+                else 
+                        {   System.out.println("3afatlo"+form);
+                            try {
+                                   bus.unBindMsg(busGetPointClick); 
+                                bus.sendMsg(form+" x="+posx+" y="+posy);
+                                posx+=50;
+                                posy+=50;
+                                sb=sb.CREE;
+                                run();
+                            } catch (IvyException ex) {Logger.getLogger(InteractionIcarPointage.class.
+                                                            getName()).log(Level.SEVERE, null, ex);
+                                                       }
+                             t.stop();
+                        }
 }
     };
-    
+        //initiation du timer
       Timer t = new Timer(delay,task);
     
     public InteractionIcarPointage() throws IvyException, AWTException
@@ -86,22 +105,23 @@ else {System.out.println("3afatlo"+form);
     {  
         switch (sb) 
         {
-            case INIT:{getIcarForm();System.out.println("i habe form");}break;
-            case FICAR:{t.start();System.out.println("i have point");  }break;
-            case SPOIN:{t.stop();System.out.println("i create");createForm();}break;
-            case CREE:{System.out.println("je suis creer");}break;
+            case INIT:{System.out.println("ena fi init");getIcarForm();}break;
+            case FICAR:{getPalettePoint();t.start();System.out.println("TIMER START");  }break;
+            case SCLICK:{t.stop();System.out.println("i create with click");createForm();}break;
+            case POINT:{t.stop();System.out.println("i create with voice");createForm();}break;
+            case CREE:{System.out.println("je suis creer");etat();}break;
         }
     }
     
-    public void TranslateIcarPointMsg() throws IvyException
-           {getIcarForm();
-           getPalettePoint();
-           }
+   private void etat() throws IvyException {
+        sb=sb.INIT;run();  
+        
+       }
      
     
     public void getIcarForm() throws IvyException
        {
-        bus.bindMsg("^ICAR (.*)",new IvyMessageListener() 
+        bus.bindMsgOnce("^ICAR (.*)",new IvyMessageListener() 
            {
           public void receive(IvyClient client, String[] args) 
                 {   
@@ -110,8 +130,9 @@ else {System.out.println("3afatlo"+form);
                         {
                             case "Rectangle":form="Palette:CreerRectangle";break;
                             case "Ellipse":form="Palette:CreerEllipse";break;
-                        }      
-                sb=sb.FICAR;
+                        }  
+                    System.out.println("i habe form");
+                    sb=sb.FICAR;
               try {
                   run();
               } catch (IvyException ex) {
@@ -124,13 +145,18 @@ else {System.out.println("3afatlo"+form);
           
     public void getPalettePoint() throws IvyException
        {
-          bus.bindMsg("^Palette:MouseReleased x=(.*) y=(.*)",new IvyMessageListener() 
-          {
+         busGetPointClick=  bus.bindMsgOnce("^Palette:MouseReleased x=(.*) y=(.*)",new IvyMessageListener() 
+          
+        {
                 public void receive(IvyClient client, String[] args) 
-                {    isClicked=true;
+                {   
+
+                    isClicked=true;
                      x=args[0];
                      y=args[1];
-                    sb=sb.SPOIN;
+                        if (iGetVoiceIci)  { sb=sb.POINT; iGetVoiceIci=false;}
+                        else {sb=sb.SCLICK;}
+                        
                     try {
                         run();
                     } catch (IvyException ex) {
@@ -138,6 +164,8 @@ else {System.out.println("3afatlo"+form);
                     }
                 } 
           });            
+                 
+
        }
     
     public void createForm()
@@ -145,7 +173,7 @@ else {System.out.println("3afatlo"+form);
           try 
             {   System.out.println(form+" x="+x+" y="+y);
                 bus.sendMsg(form+" x="+x+" y="+y);
-                
+                isClicked=false;
                 sb=sb.CREE;
                 run();
 
@@ -173,7 +201,7 @@ else {System.out.println("3afatlo"+form);
             }
 break;
            
-            case "Action:creeici" :r.mouseRelease(InputEvent.BUTTON1_MASK);
+            case "Action:creeici" :{ r.mouseRelease(InputEvent.BUTTON1_MASK);iGetVoiceIci = true;System.out.println("yes i have voice");}
 ;break;
     
       } 
@@ -181,7 +209,7 @@ break;
                        Logger.getLogger(ivyTranslater.class.getName()).log(Level.SEVERE, null, ex);
                    }
         
-      }//
+      }
     });
   }
    
