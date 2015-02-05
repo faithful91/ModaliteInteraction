@@ -181,7 +181,7 @@ break;
                        Logger.getLogger(ivyTranslater.class.getName()).log(Level.SEVERE, null, ex);
                    }
         
-      }
+      }//
     });
   }
    
