@@ -57,7 +57,7 @@ class ivyTranslater implements IvyMessageListener {
   public static void main(String args[]) throws IvyException, AWTException {
     ivyTranslater e =new ivyTranslater();
     InteractionIcarPointage x=new InteractionIcarPointage();
-   x.run();
+   x.activation();
   }
 
     @Override

@@ -37,25 +37,37 @@ public class InteractionIcarPointage implements IvyMessageListener {
   //savoir si la forme est detecter
   //pour savoir si l'emplacement de la création est detecter par pointage(voix) ou par click 
   boolean iGetVoiceIci=false;
+  String couleur="";
     @Override
     public void receive(IvyClient ic, String[] strings) {
     }
+
+   
 
     
   enum State 
   {
     //etat initiale
+//etat initiale
+//etat initiale
+//etat initiale
+//etat initiale
+//etat initiale
+//etat initiale
+//etat initiale
       INIT,
      //etat forme connue
-      FICAR,
+      FORM,
       //etat click detecter
-     SCLICK,
+     CPOS,
      //etat pointage detecter
-     POINT,
+     PPOS,
+     //etat detecter couleur
+     COLOR,
      //etat forme cree sur la palette
      CREE
     
-  }
+   }
     State sb;
     //delay pour timer
     int delay = 4000; //milliseconds
@@ -69,9 +81,46 @@ public class InteractionIcarPointage implements IvyMessageListener {
       public void actionPerformed(ActionEvent e) {
           System.out.println("timer");
                 //si l'utilisateur a clicker ou pointer il va choisir à quelle endroit la forme sera créer
+               
+          if (!isClicked)
+                       
+                //la forme va etre cree à un emplacement décaller 50 px a la derniere forme creer par le timer
+                 
+                        {   System.out.println("3afatlo"+form);
+                            try {
+                                   bus.unBindMsg(busGetPointClick); 
+                bus.sendMsg(form+" x="+posx+" y="+posy+" couleurFond="+couleur);
+
+                                posx+=50;
+                                posy+=50;
+                               
+                                sb=sb.CREE;
+                                activation();
+                            } catch (IvyException ex) {Logger.getLogger(InteractionIcarPointage.class.
+                                                            getName()).log(Level.SEVERE, null, ex);
+                                                       } catch (AWTException ex) {
+                  Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+              }
+                             t.stop();
+                        }
+          
+}
+    };
+        //initiation du timer
+      Timer t = new Timer(delay,task);
+      
+      
+      
+      
+      
+      ActionListener taskCouleur = new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+          System.out.println("timercouleur");
+                //si l'utilisateur a clicker ou pointer il va choisir à quelle endroit la forme sera créer
                 if (isClicked)
                         {
-                                    isClicked=false;
+                                   
                                
                         }
                 //sinon la forme va etre cree à un emplacement décaller 50 px a la derniere forme creer par le timer
@@ -79,103 +128,151 @@ public class InteractionIcarPointage implements IvyMessageListener {
                         {   System.out.println("3afatlo"+form);
                             try {
                                    bus.unBindMsg(busGetPointClick); 
-                                bus.sendMsg(form+" x="+posx+" y="+posy);
+                
+                                   bus.sendMsg(form+" x="+x+" y="+y+"C");
+                                   System.out.println(form+" x="+x+" y="+y);
                                 posx+=50;
                                 posy+=50;
                                 sb=sb.CREE;
-                                run();
+                                activation();
                             } catch (IvyException ex) {Logger.getLogger(InteractionIcarPointage.class.
                                                             getName()).log(Level.SEVERE, null, ex);
-                                                       }
+                                                       } catch (AWTException ex) {
+                  Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+              }
                              t.stop();
                         }
 }
     };
         //initiation du timer
-      Timer t = new Timer(delay,task);
+      Timer tcouleur = new Timer(delay,taskCouleur);
     
     public InteractionIcarPointage() throws IvyException, AWTException
     {   bus = new Ivy("IvyTranslater","",null);
          bus.start("127.255.255.255:2010");
         sb=sb.INIT;
-        getSraMsg();
+        init();
+        
+        
         
     }
-     public void run() throws IvyException 
+     public void activation() throws IvyException, AWTException 
     {  
         switch (sb) 
         {
-            case INIT:{System.out.println("ena fi init");getIcarForm();}break;
-            case FICAR:{getPalettePoint();t.start();System.out.println("TIMER START");  }break;
-            case SCLICK:{t.stop();System.out.println("i create with click");createForm();}break;
-            case POINT:{t.stop();System.out.println("i create with voice");createForm();}break;
+            case INIT:{init();System.out.println("ena fi init");getForm();}break;
+            case FORM:{getPosVoice();getClickPosition();t.start();System.out.println("TIMER START");  }break;
+            case CPOS:{t.stop();System.out.println("i create with click");createForm();}break;
+            case PPOS:{t.stop();System.out.println("i create with voice");createForm();}break;
+            case COLOR:{System.out.println("ena fi color");createForm();}break;
             case CREE:{System.out.println("je suis creer");etat();}break;
         }
     }
     
-   private void etat() throws IvyException {
-        sb=sb.INIT;run();  
+   private void etat() throws IvyException, AWTException {
+        sb=sb.INIT;activation();  
+        
         
        }
+    private void init() throws IvyException {
+        isClicked=false;
+        iGetVoiceIci=false;
+        couleur="";
+        getForm();
+
+    }
      
     
-    public void getIcarForm() throws IvyException
+    public void getForm() throws IvyException
        {
         bus.bindMsgOnce("^ICAR (.*)",new IvyMessageListener() 
            {
           public void receive(IvyClient client, String[] args) 
                 {   
-                    System.out.println(args[0]);
-                    switch(args[0])
-                        {
-                            case "Rectangle":form="Palette:CreerRectangle";break;
-                            case "Ellipse":form="Palette:CreerEllipse";break;
-                        }  
-                    System.out.println("i habe form");
-                    sb=sb.FICAR;
-              try {
-                  run();
-              } catch (IvyException ex) {
-                  Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
-              }
+                    switch (sb) 
+                        {   case INIT:
+                                {   System.out.println(args[0]);
+                                    switch(args[0])
+                                            {
+                                                case "Rectangle":form="Palette:CreerRectangle";break;
+                                                case "Ellipse":form="Palette:CreerEllipse";break;
+                                            }  
+                                    System.out.println("i have form");
+                                    sb=sb.FORM;try {
+                                        activation();
+                                    } catch (IvyException ex) {
+                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                    } catch (AWTException ex) {
+                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                               }
+                                }break;
+                            case FORM:break;
+                            case CPOS:break;
+                            case PPOS:break;
+                            case COLOR:break;
+                            case CREE:break;
+                        } 
+                   
+                    
+                    
+              
                 }
            });            
        }  
            
           
-    public void getPalettePoint() throws IvyException
+    public void getClickPosition() throws IvyException
        {
          busGetPointClick=  bus.bindMsgOnce("^Palette:MouseReleased x=(.*) y=(.*)",new IvyMessageListener() 
           
         {
-                public void receive(IvyClient client, String[] args) 
+                
+            public void receive(IvyClient client, String[] args) 
                 {   
 
-                    isClicked=true;
-                     x=args[0];
-                     y=args[1];
-                        if (iGetVoiceIci)  { sb=sb.POINT; iGetVoiceIci=false;}
-                        else {sb=sb.SCLICK;}
-                        
-                    try {
-                        run();
-                    } catch (IvyException ex) {
-                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                    switch (sb) 
+                        {   case INIT:break;
+                            case FORM:
+                                {   x=args[0];
+                                    y=args[1];
+                                    sb=sb.CPOS;
+                                        try {
+                                            activation();
+                                        } catch (IvyException ex) {
+                                            Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                        } catch (AWTException ex) {
+                                            Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                        }
+                                }break;
+                            case CPOS:break;
+                            case PPOS:
+                                {   x=args[0];
+                                    y=args[1];
+                                    sb=sb.PPOS;
+                                        try {
+                                            activation();
+                                        } catch (IvyException ex) {
+                                            Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                        } catch (AWTException ex) {
+                                            Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                        }
+                                }break;
+                            case COLOR:break;
+                            case CREE:break;
+                        }
                 } 
-          });            
-                 
-
-       }
+        });                            
+}
     
-    public void createForm()
+    public void createForm() throws AWTException
         {
           try 
-            {   System.out.println(form+" x="+x+" y="+y);
-                bus.sendMsg(form+" x="+x+" y="+y);
+            {  
+                System.out.println(form+" x="+x+" y="+y);
+                bus.sendMsg(form+" x="+x+" y="+y+" couleurFond="+couleur);
                 isClicked=false;
                 sb=sb.CREE;
-                run();
+                activation();
 
 
             } catch (IvyException ex) 
@@ -184,33 +281,110 @@ public class InteractionIcarPointage implements IvyMessageListener {
                 }   
         }
         
-  public void getSraMsg() throws IvyException, AWTException{
-      Robot r=new Robot();
-  bus.bindMsg("^sra5 Parsed=(.*) Confidence=.*",new IvyMessageListener() {
-      // callback for "Bye" message
-      public void receive(IvyClient client, String[] args) {
-               System.out.println(args[0]);
- try {
-     switch (args[0])
-     {
-            case "Action:deplacement Position:en bas" :
-            {
-                bus.sendMsg("Palette:DeplacerObjet nom=R4 y=2");
-           
-            
-            }
-break;
-           
-            case "Action:creeici" :{ r.mouseRelease(InputEvent.BUTTON1_MASK);iGetVoiceIci = true;System.out.println("yes i have voice");}
-;break;
-    
-      } 
-     } catch (IvyException ex) {
-                       Logger.getLogger(ivyTranslater.class.getName()).log(Level.SEVERE, null, ex);
-                   }
-        
-      }
-    });
-  }
+  public void getPosVoice() throws IvyException, AWTException{
+        Robot r=new Robot();
+        bus.bindMsg("^sra5 Parsed=(.*) Confidence=.*",new IvyMessageListener() 
+        {
+            // callback for "Bye" message
+            public void receive(IvyClient client, String[] args) 
+                {
+                    switch (sb) 
+                                  {   case INIT:break;
+                                      case FORM:
+                                        { System.out.println(args[0]);
+                                            if(args[0].equals("Action:creeici"))
+                                            {
+                                                r.mouseRelease(InputEvent.BUTTON1_MASK);iGetVoiceIci = true;
+                                                System.out.println("yes i have voice");
+                                            }
+                                            sb=sb.PPOS;
+                                                try {
+                                                    activation();
+                                                } catch (IvyException ex) {
+                                                    Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                } catch (AWTException ex) {
+                                                    Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                }
+                                        }break;
+                                      case CPOS:break;
+                                      case PPOS:break;
+                                      case COLOR:break;
+                                      case CREE:break;
+                                  }  
+                }
+        });
+}
    
+  
+  
+  public void getColor() throws IvyException, AWTException{
+              bus.bindMsg("^sra5 Parsed=(.*) Confidence=.*",new IvyMessageListener() 
+
+      {
+            // callback for "Bye" message
+            public void receive(IvyClient client, String[] args) 
+                {
+                    switch (sb) 
+                                  {   case INIT:break;
+                                      case FORM:
+                                           { System.out.println(args[0]);
+                                          
+                                                switch(args[0])
+                                                  {
+                                                        case "Action:couleur bleu" :{couleur="blue";};break; 
+                                                        case "Action:couleur rouge" :{couleur="red";};break; 
+                                                        case "Action:couleur vert" :{couleur="green";};break; 
+                                                   }
+                                                sb=sb.COLOR;
+                                                    try {
+                                                        activation();
+                                                    } catch (IvyException ex) {
+                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                    } catch (AWTException ex) {
+                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                    }
+                                            }break;
+                                        case CPOS:
+                                           { System.out.println(args[0]);
+                                          
+                                                switch(args[0])
+                                                  {
+                                                        case "Action:couleur bleu" :{couleur="blue";};break; 
+                                                        case "Action:couleur rouge" :{couleur="red";};break; 
+                                                        case "Action:couleur vert" :{couleur="green";};break; 
+                                                   }
+                                                sb=sb.COLOR;
+                                                    try {
+                                                        activation();
+                                                    } catch (IvyException ex) {
+                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                    } catch (AWTException ex) {
+                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                    }
+                                            }break;  
+                                        case PPOS:
+                                           { System.out.println(args[0]);
+                                          
+                                                switch(args[0])
+                                                  {
+                                                        case "Action:couleur bleu" :{couleur="blue";};break; 
+                                                        case "Action:couleur rouge" :{couleur="red";};break; 
+                                                        case "Action:couleur vert" :{couleur="green";};break; 
+                                                   }
+                                                sb=sb.COLOR;
+                                                    try {
+                                                        activation();
+                                                    } catch (IvyException ex) {
+                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                    } catch (AWTException ex) {
+                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                    }
+                                           }break;
+                                      case COLOR:break;
+                                      case CREE:break;
+                                  }  
+                }
+        });
 }   
+
+}
