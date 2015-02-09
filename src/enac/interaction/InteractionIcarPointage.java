@@ -16,6 +16,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,12 +41,14 @@ public class InteractionIcarPointage implements IvyMessageListener {
   //pour savoir si l'emplacement de la création est detecter par pointage(voix) ou par click 
   boolean iGetVoiceIci=false;
   String couleur="";
-  GuideFrame frame;
-  	private static ArrayList<Listener> listeners;
+  private static GuideFrame frame= frame = new GuideFrame();
+  String lbForme="";
 
     @Override
     public void receive(IvyClient ic, String[] strings) {
     }
+
+  
     enum State 
   {//etat initiale
       INIT,
@@ -153,46 +157,71 @@ public class InteractionIcarPointage implements IvyMessageListener {
     public InteractionIcarPointage() throws IvyException, AWTException
     {   bus = new Ivy("IvyTranslater","",null);
          bus.start("127.255.255.255:2010");
+        
+         
+       
+       
         sb=sb.INIT;
         init();
-       frame = new GuideFrame();
-       listeners = new ArrayList<Listener>();
+        java.awt.EventQueue.invokeLater(new Runnable() {
+			public void run() {
+                            
+				frame.setVisible(true);
+                                
+			}
+		});
+  
         
+        
+                activation();
+
         
         
     }
      public void activation() throws IvyException, AWTException 
-    {  
+    {  setLabel();
         switch (sb) 
         {
-            case INIT:{init();updateLabel("lol"); System.out.println("ena fi init");getForm();}break;
-            case FORM:{updateLabel("enafigfirm");getColor();getPosVoice();getClickPosition();t.start();System.out.println("TIMER START");}break;
+            case INIT:{init(); ;System.out.println("ena fi init");getForm();}break;
+            case FORM:{getColor();getPosVoice();getClickPosition();t.start();System.out.println("TIMER START");}break;
             case CPOS:{t.stop();System.out.println("ena fi CPOS:i have cordonnée with click");}break;
             case PPOS:{t.stop();System.out.println("ena fi PPOS:i have coordonnée with voice");}break;
             case COLOR:{System.out.println("ena fi color");}break;
-            case CREE:{updateLabel("kol");System.out.println("je suis creer");etat();}break;
+            case CREE:{System.out.println("je suis creer");etat();}break;
         }
     }
     
+     public void setLabel()
+     {
+     switch (sb) 
+                        {   case INIT:break;
+                            case FORM:{frame.setForme("La Forme detectée " +lbForme);
+                            frame.setLbInstruc1("Vous avez 4s pour spécifier soit une emplacement pour créer la forme soit une couleur");
+                            }break;
+                            case CPOS:{frame.setlbClickColor("La position est spécifiée, Vous avez maintenant 4s pour spécifier la couleur avec votre voix");}break;
+                            case PPOS:{frame.setlbClickColor("La position est spécifiée, Vous avez maintenant 4s pour spécifier la couleur avec votre voix");}break;
+                            case COLOR:break;
+                            case CREE:break;
+                        }}
    private void etat() throws IvyException, AWTException {
         sb=sb.INIT;activation();  
         
         
        }
-    private void init() throws IvyException {
+    private void init() throws IvyException, AWTException {
+       
         isClicked=false;
         iGetVoiceIci=false;
         couleur="";
         x=null;
-        y=null;}
-        
-    public void updateLabel(String x)
-    {for(Listener listener : listeners){
-				listener.textComandChanged(x);
-			}
-			frame.setCommand(x);
+        y=null;
+        lbForme="";
+        frame.setForme("");
+        frame.setlbClickColor("");
+        frame.setLbInstruc1("");
     }
-            
+        
+     
     
     
     public void getForm() throws IvyException
@@ -203,7 +232,8 @@ public class InteractionIcarPointage implements IvyMessageListener {
                 {   
                     switch (sb) 
                         {   case INIT:
-                                {   System.out.println(args[0]+"lol");
+                                {   
+                                    lbForme=(args[0]);
                                     switch(args[0])
                                             {
                                                 case "Rectangle":form="Palette:CreerRectangle";break;
@@ -258,7 +288,7 @@ public class InteractionIcarPointage implements IvyMessageListener {
                                 }break;
                             case COLOR:break;
                             case CREE:break;
-                        }
+                        }setLabel();
                 } 
         });                            
 }
@@ -394,14 +424,5 @@ public class InteractionIcarPointage implements IvyMessageListener {
                 }
         });
   } 
-public void addHiroListener(Listener listener) {
-		listeners.add(listener);
-	}
-
-	public void removeListener(Listener listener) {
-		if (listeners.contains(listener)) {
-			listeners.remove(listener);
-		}
-	}
 
 }

@@ -7,66 +7,85 @@ package enac.interaction;
 
 import java.awt.Color;
 import java.awt.GridLayout;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 public class GuideFrame extends JFrame {
-
+        
 	// private JLabel[][] labels;
-	private JLabel labelHiro;
-	private JLabel labelKanji;
-	private JLabel labelKanji_pointecone;
+	private JLabel lbPres;
+	private JLabel lbForme;
+	private JLabel lbClickColor;
+        private JLabel lbInstruc1;
 
+    public JLabel getLbInstruc1() {
+        return lbInstruc1;
+    }
+
+    public void setLbInstruc1(String text) {
+        this.lbInstruc1.setText(text);
+    }
+
+        private PropertyChangeSupport changes = new PropertyChangeSupport(this);
+        
+        
+        public void addPropertyChangeListener(PropertyChangeListener l)
+        {changes.addPropertyChangeListener(l);}
+        public void removePropertyChangeListener(PropertyChangeListener l)
+        {changes.removePropertyChangeListener(l);}
+        
 	public GuideFrame() {
 		super();
 		
 		JPanel panel= new JPanel();
-		panel.setLayout(new GridLayout(3,2));
+		panel.setLayout(new GridLayout(4,1));
 		panel.setBackground(Color.white);
 		
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		labelHiro = new JLabel("hiro");
-		labelKanji = new JLabel("kanji");
-		labelKanji_pointecone = new JLabel("kanjipointe");	
+		lbPres = new JLabel("Le moteur de fusion est pret, commencer par spécifier la forme avec ICar");
+		lbForme = new JLabel();
+		lbClickColor = new JLabel("");
+                lbInstruc1=new JLabel();
 		
 		
-		panel.add(labelHiro);
-		panel.add(labelKanji);
-		panel.add(labelKanji_pointecone);
-		
-		labelHiro.setLocation(0, 100);
-		labelKanji.setLocation(0, 200);
-		labelKanji_pointecone.setLocation(0, 300);		
+		panel.add(lbPres);
+                panel.add(lbForme);
+		panel.add(lbInstruc1);
 
+		panel.add(lbClickColor);
+		
+		
 		setContentPane(panel);
 		this.setSize(500, 500);
 		
 	}
 
 	public JLabel getLabelHiro() {
-		return labelHiro;
+		return lbPres;
 	}
 
-	public void setLabelHiro(String text) {
-		this.labelHiro.setText(text);
+	public void setlbPres(String text) {
+		this.lbPres.setText(text);
 	}
 
-	public JLabel getLabelKanji() {
-		return labelKanji;
+	public JLabel getlbForme() {
+		return lbForme;
 	}
 
-	public void setCommand(String text) {
-		this.labelKanji.setText(text);
+	public void setForme(String text) {
+            this.lbForme.setText(text);
 	}
 
-	public JLabel getLabelKanji_pointecone() {
-		return labelKanji_pointecone;
+	public JLabel getlbClickColor() {
+		return lbClickColor;
 	}
 
-	public void setLabelKanji_pointecone(String text) {
-		this.labelKanji_pointecone.setText(text);
+	public void setlbClickColor(String text) {
+		this.lbClickColor.setText(text);
 	}
 }
 
