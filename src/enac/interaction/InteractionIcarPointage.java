@@ -43,6 +43,8 @@ public class InteractionIcarPointage implements IvyMessageListener {
   String couleur="";
   private static GuideFrame frame= frame = new GuideFrame();
   String lbForme="";
+  String formName="";
+  int numBusDepl;
 
     @Override
     public void receive(IvyClient ic, String[] strings) {
@@ -61,7 +63,9 @@ public class InteractionIcarPointage implements IvyMessageListener {
      //etat detecter couleur
      COLOR,
      //etat forme cree sur la palette
-     CREE
+     CREE,
+     //etat de déplacement
+     DEPL,
    }
     State sb;
     //delay pour timer
@@ -115,7 +119,7 @@ public class InteractionIcarPointage implements IvyMessageListener {
           System.out.println("timercouleur");
                 //si l'utilisateur a clicker ou pointer il va choisir à quelle endroit la forme sera créer
              switch (sb) 
-                        {   case INIT:break;
+                        {   case INIT:{}break;
                             case FORM:break;
                             case CPOS:
                             {try {
@@ -156,38 +160,28 @@ public class InteractionIcarPointage implements IvyMessageListener {
     
     public InteractionIcarPointage() throws IvyException, AWTException
     {   bus = new Ivy("IvyTranslater","",null);
-         bus.start("127.255.255.255:2010");
-        
-         
-       
-       
+        bus.start("127.255.255.255:2010");
         sb=sb.INIT;
         init();
         java.awt.EventQueue.invokeLater(new Runnable() {
-			public void run() {
-                            
-				frame.setVisible(true);
-                                
-			}
-		});
-  
-        
-        
-                activation();
-
-        
-        
+			public void run() 
+                    { frame.setVisible(true);}
+               });
+        getClickPositionToDeplace();getFormInfo();
+        activation();
     }
-     public void activation() throws IvyException, AWTException 
+     
+    public void activation() throws IvyException, AWTException 
     {  setLabel();
         switch (sb) 
         {
-            case INIT:{init(); ;System.out.println("ena fi init");getForm();}break;
+            case INIT:{init();System.out.println("ena fi init");getForm();}break;
             case FORM:{getColor();getPosVoice();getClickPosition();t.start();System.out.println("TIMER START");}break;
             case CPOS:{t.stop();System.out.println("ena fi CPOS:i have cordonnée with click");}break;
             case PPOS:{t.stop();System.out.println("ena fi PPOS:i have coordonnée with voice");}break;
             case COLOR:{System.out.println("ena fi color");}break;
             case CREE:{System.out.println("je suis creer");etat();}break;
+            case DEPL:{ getDeplacement();System.out.println("ena fi depl");}break;    
         }
     }
     
@@ -209,7 +203,7 @@ public class InteractionIcarPointage implements IvyMessageListener {
         
        }
     private void init() throws IvyException, AWTException {
-       
+       formName="";
         isClicked=false;
         iGetVoiceIci=false;
         couleur="";
@@ -420,6 +414,164 @@ public class InteractionIcarPointage implements IvyMessageListener {
                                            }break;
                                       case COLOR:break;
                                       case CREE:break;
+                                  }  
+                }
+        });
+  } 
+
+  
+  public void getClickPositionToDeplace() throws IvyException
+  
+  {    
+         busGetPointClick=  bus.bindMsg("^Palette:MouseReleased x=(.*) y=(.*)",new IvyMessageListener() 
+          
+        {   String xpos;
+            String ypos;
+                
+            public void receive(IvyClient client, String[] args) 
+                {   
+
+                    switch (sb) 
+                        {   case INIT:
+                            {   xpos=args[0];
+                                ypos=args[1];
+                                System.out.println("x: "+xpos +" y: "+ypos); 
+                        try {
+                            bus.sendMsg("Palette:TesterPoint x="+xpos+" y="+ypos);
+                        } catch (IvyException ex) {
+                            Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                            }break;
+                            case FORM:break;
+                            case CPOS:break;
+                            case PPOS:break;
+                            case COLOR:break;
+                            case CREE:break;
+                            case DEPL:{xpos=args[0];
+                                ypos=args[1];
+                                System.out.println("x: "+xpos +" y: "+ypos);
+                        try {
+                            bus.sendMsg("Palette:TesterPoint x="+xpos+" y="+ypos);
+                        } catch (IvyException ex) {
+                            Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+}    
+                        }
+                } 
+        });                            
+}
+  public void getFormInfo() throws IvyException
+    { 
+         busGetPointClick=  bus.bindMsg("^Palette:ResultatTesterPoint x=(.*) y=(.*) nom=(.*)",new IvyMessageListener() 
+          
+        {
+                
+            public void receive(IvyClient client, String[] args) 
+                {   String xpos;
+                    String ypos;
+                    
+
+                    switch (sb) 
+                        {   case INIT:
+                            {xpos=args[0];
+                             ypos=args[1];
+                             formName=args[2];
+                                        
+                            if (!formName.equals(""))
+                                    {
+                                        System.out.println("x2x: "+xpos +" y: "+ypos+" nom: "+formName);
+                                        sb=sb.DEPL;
+                                            try {
+                                        activation();
+                                            } catch (IvyException ex) {
+                                                Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                            } catch (AWTException ex) {
+                                                Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                            }
+                                    }
+                            }break;
+                            case FORM:break;
+                            case CPOS:break;
+                            case PPOS:break;
+                            case COLOR:break;
+                            case CREE:break;
+                            case DEPL:
+                            {xpos=args[0];
+                             ypos=args[1];
+                             formName=args[2];
+                             System.out.println("x2x: "+xpos +" y: "+ypos+" nom: "+formName);
+                             if (formName.equals(""))
+                                {sb=sb.INIT;
+                                   try {
+                                       activation();
+                                   } catch (IvyException ex) {
+                                       Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                   } catch (AWTException ex) {
+                                       Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                   }
+                                }
+                             
+                            }break;
+                        }
+                } 
+        });                            
+    }
+  
+  public void getDeplacement() throws IvyException, AWTException{
+              numBusDepl=bus.bindMsg("^sra5 Parsed=(.*) Confidence=.*",new IvyMessageListener() 
+
+      {
+            // callback for "Bye" message
+            public void receive(IvyClient client, String[] args) 
+                {System.out.println("lol");
+                    switch (sb) 
+                                  {   case INIT:break;
+                                      case FORM:break;
+                                      case CPOS:break;  
+                                      case PPOS:break;
+                                      case COLOR:break;
+                                      case CREE:break;
+                                      case DEPL:
+                                            {switch(args[0])
+                                                {case "Action:deplacement Position:en bas" :{System.out.println(args[0]);
+                                                                    try {
+                                                 bus.sendMsg("Palette:DeplacerObjet nom="+formName+" y=20");
+                                                                        } catch (IvyException ex) {
+                                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                }break;}
+                                                case "Action:deplacement Position:en haut" :{System.out.println(args[0]);
+                                                                    try {
+                                                 bus.sendMsg("Palette:DeplacerObjet nom="+formName+" y=-20");
+                                                                        } catch (IvyException ex) {
+                                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                }break;}
+                                                case "Action:deplacement Position:a gauche" :{System.out.println(args[0]);
+                                                                    try {
+                                                 bus.sendMsg("Palette:DeplacerObjet nom="+formName+" x=-20");
+                                                                        } catch (IvyException ex) {
+                                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                }break;}
+                                                case "Action:deplacement Position:a droite" :{System.out.println(args[0]);
+                                                                    try {
+                                                 bus.sendMsg("Palette:DeplacerObjet nom="+formName+" x=20");
+                                                                        } catch (IvyException ex) {
+                                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                }break;}
+                                                
+                                                case "Action:deplacement: fin" :{System.out.println(args[0]);
+                                                 {sb=sb.INIT;
+                                                    try {bus.unBindMsg(numBusDepl);
+                                                        activation();
+                                                    } catch (IvyException ex) {
+                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                    } catch (AWTException ex) {
+                                                        Logger.getLogger(InteractionIcarPointage.class.getName()).log(Level.SEVERE, null, ex);
+                                                    }
+                                                 }break;}
+                                                        //case "Action:deplacement Position:en bas" :{couleur="red";System.out.println("GetColor():I get color");sb=sb.COLOR;activation();};break; 
+                                                        //case "Action:deplacement Position:en bas :{couleur="green";System.out.println("GetColor():I get color");sb=sb.COLOR;activation();};break; 
+                                                   }
+                                            }
                                   }  
                 }
         });
